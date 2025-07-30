@@ -1,0 +1,132 @@
+import mysql.connector
+from datetime import datetime
+try:
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="",
+        database="airline_reservation_db"
+    )
+    print("Connected successfully!")
+    cursor = conn.cursor()
+except mysql.connector.Error as err:
+    print("Connection failed:", err)
+    exit()
+
+# Add Flight
+def add_flight():
+    name = input("Enter flight name: ")
+    src = input("Enter source: ")
+    dest = input("Enter destination: ")
+    dept = input("Departure time (HH:MM:SS): ")
+    arr = input("Arrival time (HH:MM:SS): ")
+    seats = int(input("Enter available seats: "))
+
+    query = "INSERT INTO flights(flight_name, source, destination, departure_time, arrival_time, seats_available) VALUES (%s, %s, %s, %s, %s, %s)"
+    val = (name, src, dest, dept, arr, seats)
+    cursor.execute(query, val)
+    conn.commit()
+    print("Flight added successfully.\n")
+
+# View Flights
+def view_flights():
+    cursor.execute("SELECT * FROM flights")
+    rows = cursor.fetchall()
+    print(f"\n{'ID':<5}{'Flight':<15}{'From':<15}{'To':<15}{'Dep':<10}{'Arr':<10}{'Seats':<6}")
+    for row in rows:
+        flight_id = row[0]
+        flight_name = row[1]
+        source = row[2]
+        destination = row[3]
+        dep_time = str(row[4])
+        arr_time = str(row[5])
+        seats = row[6]
+
+        print(f"{flight_id:<5}{flight_name:<15}{source:<15}{destination:<15}{dep_time:<10}{arr_time:<10}{seats:<6}")
+
+
+# Book Ticket
+def book_ticket():
+    name = input("Passenger name: ")
+    age = int(input("Age: "))
+    gender = input("Gender: ")
+    passport = input("Passport Number: ")
+
+    cursor.execute("INSERT INTO passengers (name, age, gender, passport_no) VALUES (%s, %s, %s, %s)", (name, age, gender, passport))
+    passenger_id = cursor.lastrowid
+
+    view_flights()
+    flight_id = int(input("Enter flight ID to book: "))
+
+    cursor.execute("SELECT seats_available FROM flights WHERE flight_id = %s", (flight_id,))
+    flight = cursor.fetchone()
+    if not flight or flight[0] <= 0:
+        print("No seats available or invalid flight.")
+        return
+
+    booking_date = input("Booking date (YYYY-MM-DD): ")
+
+    cursor.execute("INSERT INTO bookings (flight_id, passenger_id, booking_date) VALUES (%s, %s, %s)", (flight_id, passenger_id, booking_date))
+    cursor.execute("UPDATE flights SET seats_available = seats_available - 1 WHERE flight_id = %s", (flight_id,))
+    conn.commit()
+    print("Ticket booked successfully.\n")
+
+# View Bookings
+def view_bookings():
+    cursor.execute("""
+        SELECT b.booking_id, p.name, f.flight_name, f.source, f.destination, b.booking_date
+        FROM bookings b
+        JOIN passengers p ON b.passenger_id = p.passenger_id
+        JOIN flights f ON b.flight_id = f.flight_id
+    """)
+    rows = cursor.fetchall()
+    print("Bookings:")
+    for row in rows:
+        print(row)
+
+# Cancel Booking
+def cancel_booking():
+    booking_id = input("Enter booking ID to cancel: ")
+
+    cursor.execute("SELECT * FROM bookings WHERE booking_id = %s", (booking_id,))
+    if cursor.fetchone():
+        cursor.execute("DELETE FROM bookings WHERE booking_id = %s", (booking_id,))
+        conn.commit()
+        print("Booking canceled.\n")
+    else:
+        print("Booking ID not found.\n")
+
+# Main Menu
+def menu():
+    while True:
+        print("""
+========== Airline Reservation System ==========
+1. Add Flight
+2. View Flights
+3. Book Ticket
+4. View Bookings
+5. Cancel Booking
+6. Exit
+""")
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            add_flight()
+        elif choice == '2':
+            view_flights()
+        elif choice == '3':
+            book_ticket()
+        elif choice == '4':
+            view_bookings()
+        elif choice == '5':
+            cancel_booking()
+        elif choice == '6':
+            print("Exiting... ")
+            break
+        else:
+            print("Invalid choice. Try again.")
+
+menu()
+cursor.close()
+conn.close()
+
