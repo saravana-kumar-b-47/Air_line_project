@@ -1,0 +1,26 @@
+CREATE DATABASE IF NOT EXISTS airline_reservation_db;
+USE airline_reservation_db;
+CREATE TABLE IF NOT EXISTS flights (
+    flight_id INT AUTO_INCREMENT PRIMARY KEY,
+    flight_name VARCHAR(50) NOT NULL,
+    source VARCHAR(50) NOT NULL,
+    destination VARCHAR(50) NOT NULL,
+    departure_time TIME NOT NULL,
+    arrival_time TIME NOT NULL,
+    seats_available INT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS passengers (
+    passenger_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    age INT NOT NULL,
+    gender VARCHAR(10) NOT NULL,
+    passport_no VARCHAR(20) UNIQUE NOT NULL
+);
+CREATE TABLE IF NOT EXISTS bookings (
+    booking_id INT AUTO_INCREMENT PRIMARY KEY,
+    flight_id INT,
+    passenger_id INT,
+    booking_date DATE,
+    FOREIGN KEY (flight_id) REFERENCES flights(flight_id) ON DELETE CASCADE,
+    FOREIGN KEY (passenger_id) REFERENCES passengers(passenger_id) ON DELETE CASCADE
+);
